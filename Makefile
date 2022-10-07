@@ -1,17 +1,21 @@
 target = hello
 cc = gcc
-src = $(wildcard *.c)
-obj = $(src:.c=.o)
+src = $(wildcard src/*.c)
+obj = $(addsuffix .o,$(addprefix build/,$(subst /,!,$(src))))
 cflags = -Wall -MD
 
-$(target): $(obj)
+build/$(target): $(obj)
 	$(cc) $(cflags) -o $@ $^
 
-.c.o:
+build:
+	@mkdir -p build
+
+.SECONDEXPANSION:
+build/%.o: $$(subst !,/,%) | build
 	$(cc) $(cflags) -c -o $@ $<
 
-.phony: clean
+.PHONY: clean
 clean:
-	rm -f $(obj) *.d $(target)
+	rm -Rf build
 
-include $(wildcard *.d)
+include $(wildcard build/*.d)
