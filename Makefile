@@ -14,13 +14,16 @@ define make-build-target
   .phony: $1
   $1: build/$(target).$1
 endef
-$(foreach profile,$(profiles),$(eval $(call make-build-target,$(profile))))
+$(foreach p,$(profiles), \
+  $(eval $(call make-build-target,$p)))
 
 define make-object-target
   build/$(subst /,!,$2).$1.o: $2 | build
 	$(cc) $(cflags.$1) -c -o $$@ $$<
 endef
-$(foreach profile,$(profiles),$(eval $(foreach s,$(src),$(eval $(call make-object-target,$(profile),$(s))))))
+$(foreach p,$(profiles), \
+  $(eval $(foreach s,$(src), \
+    $(eval $(call make-object-target,$p,$s)))))
 
 build:
 	@mkdir -p build
