@@ -1,29 +1,29 @@
 target = hello
+profiles = debug optimized tiny
 cc = gcc
 src = $(wildcard src/*.c)
-obj.base = $(addprefix build/,$(subst /,!,$(src)))
-obj.debug = $(addsuffix .debug.o,$(obj.base))
-obj.optimized = $(addsuffix .optimized.o,$(obj.base))
 cflags.base = -Wall -MD
-cflags.debug = -g -O0 -fsanitize=address
-cflags.optimized = -O3 -fomit-frame-pointer
+cflags.debug = $(cflags.base) -g -O0 -fsanitize=address
+cflags.optimized = $(cflags.base) -O3 -fomit-frame-pointer
+cflags.tiny = $(cflags.base) -Os
 
-build/$(target).debug: $(obj.debug)
-	$(cc) $(cflags.base) $(cflags.debug) -o $@ $^
+define make-build-target
+  build/$(target).$1: $(addsuffix .$1.o,$(addprefix build/,$(subst /,!,$(src))))
+	$(cc) $(cflags.$1) -o $$@ $$^
 
-build/$(target).optimized: $(obj.optimized)
-	$(cc) $(cflags.base) $(cflags.optimized) -o $@ $^
+  .phony: $1
+  $1: build/$(target).$1
+endef
+$(foreach profile,$(profiles),$(eval $(call make-build-target,$(profile))))
+
+define make-object-target
+  build/$(subst /,!,$2).$1.o: $2 | build
+	$(cc) $(cflags.$1) -c -o $$@ $$<
+endef
+$(foreach profile,$(profiles),$(eval $(foreach s,$(src),$(eval $(call make-object-target,$(profile),$(s))))))
 
 build:
 	@mkdir -p build
-
-.SECONDEXPANSION:
-build/%.debug.o: $$(subst !,/,%) | build
-	$(cc) $(cflags.base) $(cflags.debug) -c -o $@ $<
-
-.SECONDEXPANSION:
-build/%.optimized.o: $$(subst !,/,%) | build
-	$(cc) $(cflags.base) $(cflags.optimized) -c -o $@ $<
 
 .PHONY: clean
 clean:
