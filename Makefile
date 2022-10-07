@@ -1,18 +1,29 @@
 target = hello
 cc = gcc
 src = $(wildcard src/*.c)
-obj = $(addsuffix .o,$(addprefix build/,$(subst /,!,$(src))))
-cflags = -Wall -MD
+obj.base = $(addprefix build/,$(subst /,!,$(src)))
+obj.debug = $(addsuffix .debug.o,$(obj.base))
+obj.optimized = $(addsuffix .optimized.o,$(obj.base))
+cflags.base = -Wall -MD
+cflags.debug = -g -O0 -fsanitize=address
+cflags.optimized = -O3 -fomit-frame-pointer
 
-build/$(target): $(obj)
-	$(cc) $(cflags) -o $@ $^
+build/$(target).debug: $(obj.debug)
+	$(cc) $(cflags.base) $(cflags.debug) -o $@ $^
+
+build/$(target).optimized: $(obj.optimized)
+	$(cc) $(cflags.base) $(cflags.optimized) -o $@ $^
 
 build:
 	@mkdir -p build
 
 .SECONDEXPANSION:
-build/%.o: $$(subst !,/,%) | build
-	$(cc) $(cflags) -c -o $@ $<
+build/%.debug.o: $$(subst !,/,%) | build
+	$(cc) $(cflags.base) $(cflags.debug) -c -o $@ $<
+
+.SECONDEXPANSION:
+build/%.optimized.o: $$(subst !,/,%) | build
+	$(cc) $(cflags.base) $(cflags.optimized) -c -o $@ $<
 
 .PHONY: clean
 clean:
